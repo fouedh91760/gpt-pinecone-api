@@ -4,7 +4,7 @@ from fastapi.openapi.utils import get_openapi
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.vectorstores import Pinecone as PineconeVectorStore
 from langchain.chains import RetrievalQA
-from pinecone import Pinecone as PineconeClient, ServerlessSpec
+import pinecone
 import os
 from dotenv import load_dotenv
 
@@ -18,13 +18,13 @@ PINECONE_ENV = "gcp-europe-west4"
 INDEX_NAME = "faq-vtc"
 
 # === INITIALISATION PINECONE & EMBEDDINGS ===
-pc = PineconeClient(api_key=PINECONE_API_KEY)
-if INDEX_NAME not in pc.list_indexes().names():
-    pc.create_index(
+pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENV)
+
+if INDEX_NAME not in pinecone.list_indexes():
+    pinecone.create_index(
         name=INDEX_NAME,
         dimension=1536,
-        metric='cosine',
-        spec=ServerlessSpec(cloud='gcp', region=PINECONE_ENV)
+        metric='cosine'
     )
 
 embeddings = OpenAIEmbeddings(api_key=OPENAI_API_KEY, model="text-embedding-3-small")
