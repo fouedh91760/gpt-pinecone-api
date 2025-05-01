@@ -1,11 +1,10 @@
-
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.openapi.utils import get_openapi
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import Pinecone as PineconeVectorStore
 from langchain.chains import RetrievalQA
-import pinecone
+from pinecone import Pinecone, ServerlessSpec
 import os
 from dotenv import load_dotenv
 
@@ -19,19 +18,23 @@ PINECONE_ENV = os.environ.get("PINECONE_ENV", "gcp-europe-west4")
 INDEX_NAME = "faq-vtc"
 
 # === INITIALISATION PINECONE NOUVEAU SDK ===
-pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENV)
+pc = Pinecone(api_key=PINECONE_API_KEY)
+index = pc.Index(name=INDEX_NAME)
 
-if INDEX_NAME not in pinecone.list_indexes():
-    pinecone.create_index(
+# Vérifie et crée l'index si nécessaire (à faire une seule fois)
+if INDEX_NAME not in pc.list_indexes().names():
+    pc.create_index(
         name=INDEX_NAME,
         dimension=1536,
-        metric="cosine"
+        metric="cosine",
+        spec=ServerlessSpec(cloud="gcp", region="europe-west4")
     )
 
+# === EMBEDDINGS & LLM ===
 embeddings = OpenAIEmbeddings(api_key=OPENAI_API_KEY, model="text-embedding-3-small")
 llm = ChatOpenAI(api_key=OPENAI_API_KEY, model="gpt-4", temperature=0)
 
-# === INITIALISATION DE L’API FASTAPI ===
+# === INITIALISATION FASTAPI ===
 app = FastAPI()
 
 def custom_openapi():
@@ -43,9 +46,7 @@ def custom_openapi():
         description="API pour répondre aux questions liées aux formations PEGASE",
         routes=app.routes,
     )
-    openapi_schema["servers"] = [
-        {"url": "https://gpt-pinecone-api.onrender.com"}
-    ]
+    openapi_schema["servers"] = [{"url": "https://gpt-pinecone-api.onrender.com"}]
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
@@ -62,8 +63,8 @@ class SearchRequest(BaseModel):
 @app.post("/search_vtc")
 def search_vtc(request: SearchRequest):
     try:
-        vectorstore = PineconeVectorStore.from_existing_index(
-            index_name=INDEX_NAME,
+        vectorstore = PineconeVectorStore(
+            index=index,
             embedding=embeddings,
             namespace=request.namespace,
             text_key="text"
