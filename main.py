@@ -28,8 +28,6 @@ if INDEX_NAME not in pc.list_indexes().names():
         spec=ServerlessSpec(cloud='gcp', region=PINECONE_ENV)
     )
 
-# Récupération correcte de l'index compatible LangChain
-
 embeddings = OpenAIEmbeddings(api_key=OPENAI_API_KEY, model="text-embedding-3-small")
 llm = ChatOpenAI(api_key=OPENAI_API_KEY, model="gpt-4", temperature=0)
 
@@ -53,17 +51,14 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
-# === ROUTE DE TEST DE SANTÉ ===
 @app.get("/")
 def read_root():
     return {"message": "API is running and ready."}
 
-# === STRUCTURE DE LA REQUÊTE ===
 class SearchRequest(BaseModel):
     question: str
     namespace: str = "default"
 
-# === ROUTE DE RECHERCHE PRINCIPALE ===
 @app.post("/search_vtc")
 def search_vtc(request: SearchRequest):
     try:
@@ -71,7 +66,7 @@ def search_vtc(request: SearchRequest):
             index_name=INDEX_NAME,
             embedding=embeddings,
             namespace=request.namespace,
-            text_key="text"
+            text_key="text",
             pinecone_api_key=PINECONE_API_KEY,
             environment=PINECONE_ENV
         )
