@@ -1,0 +1,54 @@
+📂 Namespace : combos
+  - caces_fimo.md → Ignoré (vide)
+  - fimo_permis.md → Ignoré (vide)
+  - vtc_taxi.md → Ignoré (vide)
+
+📂 Namespace : financements
+  - aides_locales.md → Ignoré (vide)
+  - cpf.md → Ignoré (vide)
+  - entreprise.md → Ignoré (vide)
+  - pole_emploi.md → Ignoré (vide)
+
+📂 Namespace : general
+  - calendrier_examens.md → Ignoré (vide)
+  - conditions_generales.md → Ignoré (vide)
+  - contact_support.md → Ignoré (vide)
+  - questions_frequentes.md → Ignoré (vide)
+
+📂 Namespace : sites
+  - bordeaux.md → Ignoré (vide)
+  - lille.md → Ignoré (vide)
+  - lyon.md → Ignoré (vide)
+  - marseille.md → Ignoré (vide)
+  - paris.md → Ignoré (vide)
+
+📂 Namespace : vtc-taxi
+  - FAQ_VTC_TAXI_PINECONE_READY.md → 54 Q/R
+  - partie _generalites_&_conditions_d'acces.md → 50 Q/R
+  - partie _modules_examen_et_discriminations_(suite).md → 64 Q/R
+  - partie_arrete_2017_vtc_taxi_qr.md → 16 Q/R
+  - partie_calendrier_examen_taxi_vtc_2025.md → 126 Q/R
+  - partie_deroulement_&_comportement_candidat.md → 125 Q/R
+  - partie_examen_pratique_taxi.md → 19 Q/R
+  - partie_examen_pratique_vtc.md → 22 Q/R
+  - partie_inscription,_dossier_&_eligibilite.md → 74 Q/R
+
+📂 Namespace : formations
+  - financement.md → Ignoré (vide)
+  - r486.md → Ignoré (vide)
+  - r489.md → Ignoré (vide)
+  - continue.md → Ignoré (vide)
+  - initiale.md → Ignoré (vide)
+  - obligations.md → Ignoré (vide)
+  - combo_fimo.md → Ignoré (vide)
+  - permis_b.md → Ignoré (vide)
+  - permis_c.md → Ignoré (vide)
+  - combo_vtc.md → Ignoré (vide)
+  - examens.md → Ignoré (vide)
+  - programme.md → Ignoré (vide)
+  - combo_taxi.md → Ignoré (vide)
+  - examens.md → Ignoré (vide)
+  - financement.md → Ignoré (vide)
+  - programme.md → Ignoré (vide)
+  - tarifs.md → Ignoré (vide)
+

@@ -1,0 +1,7 @@
+langchain-community
+fastapi
+uvicorn
+langchain
+langchain-openai
+langchain-pinecone
+python-dotenv
