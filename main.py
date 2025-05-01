@@ -72,6 +72,8 @@ def search_vtc(request: SearchRequest):
             embedding=embeddings,
             namespace=request.namespace,
             text_key="text"
+            pinecone_api_key=PINECONE_API_KEY,
+            environment=PINECONE_ENV
         )
         retriever = vectorstore.as_retriever(search_kwargs={"k": 15})
         qa_chain = RetrievalQA.from_chain_type(
