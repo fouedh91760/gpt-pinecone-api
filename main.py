@@ -29,7 +29,6 @@ if INDEX_NAME not in pc.list_indexes().names():
     )
 
 # Récupération correcte de l'index compatible LangChain
-pinecone_index = pc.Index(INDEX_NAME)
 
 embeddings = OpenAIEmbeddings(api_key=OPENAI_API_KEY, model="text-embedding-3-small")
 llm = ChatOpenAI(api_key=OPENAI_API_KEY, model="gpt-4", temperature=0)
