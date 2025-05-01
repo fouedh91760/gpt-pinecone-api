@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.openapi.utils import get_openapi
@@ -51,14 +50,17 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
+# === ROUTE DE TEST DE SANTÉ ===
 @app.get("/")
 def read_root():
     return {"message": "API is running and ready."}
 
+# === STRUCTURE DE LA REQUÊTE ===
 class SearchRequest(BaseModel):
     question: str
     namespace: str = "default"
 
+# === ROUTE DE RECHERCHE PRINCIPALE ===
 @app.post("/search_vtc")
 def search_vtc(request: SearchRequest):
     try:
@@ -66,9 +68,7 @@ def search_vtc(request: SearchRequest):
             index_name=INDEX_NAME,
             embedding=embeddings,
             namespace=request.namespace,
-            text_key="text",
-            pinecone_api_key=PINECONE_API_KEY,
-            environment=PINECONE_ENV
+            text_key="text"
         )
         retriever = vectorstore.as_retriever(search_kwargs={"k": 15})
         qa_chain = RetrievalQA.from_chain_type(
