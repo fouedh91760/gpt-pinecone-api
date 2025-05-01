@@ -19,7 +19,7 @@ INDEX_NAME = "faq-vtc"
 
 # === INITIALISATION PINECONE NOUVEAU SDK ===
 pc = Pinecone(api_key=PINECONE_API_KEY)
-index = pc.Index(name=INDEX_NAME)
+
 
 # Vérifie et crée l'index si nécessaire (à faire une seule fois)
 if INDEX_NAME not in pc.list_indexes().names():
@@ -63,11 +63,11 @@ class SearchRequest(BaseModel):
 @app.post("/search_vtc")
 def search_vtc(request: SearchRequest):
     try:
-        vectorstore = PineconeVectorStore(
-            index=index,
-            embedding=embeddings,
-            namespace=request.namespace,
-            text_key="text"
+        vectorstore = PineconeVectorStore.from_existing_index(
+        index_name=INDEX_NAME,
+        embedding=embeddings,
+        namespace=request.namespace,
+        text_key="text"
         )
         retriever = vectorstore.as_retriever(search_kwargs={"k": 15})
         qa_chain = RetrievalQA.from_chain_type(
