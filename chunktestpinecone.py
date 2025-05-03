@@ -1,10 +1,12 @@
-from pinecone import Pinecone as PineconeClient
+import pinecone
+pinecone.init(api_key=os.environ["PINECONE_API_KEY"], environment="gcp-europe-west4")
+ as PineconeClient
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
 pc = PineconeClient(api_key=os.getenv("PINECONE_API_KEY"))
-index = pc.Index("faq-vtc")
+index = pinecone.Index("faq-vtc")
 
 results = index.query(
     vector=[0.0]*1536,

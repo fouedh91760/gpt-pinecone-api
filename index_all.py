@@ -9,68 +9,95 @@ from pinecone import Pinecone as PineconeClient, ServerlessSpec
 # === CHARGEMENT DES VARIABLES D'ENVIRONNEMENT ===
 load_dotenv()
 
-# === CONFIGURATION ===
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_ENV = "gcp-europe-west4"
 INDEX_NAME = "faq-vtc"
-DOCS_ROOT = Path("docs")
+DOCS_ROOT = Path("C:/Users/fouad/Documents/gpt-pinecone-clean2/docs/VTC TAXI/Examen vtc taxi")
 
-# === INIT EMBEDDINGS & PINECONE ===
+# === INITIALISATION EMBEDDINGS & PINECONE (nouveau SDK) ===
 embeddings = OpenAIEmbeddings(api_key=OPENAI_API_KEY, model="text-embedding-3-small")
 pc = PineconeClient(api_key=PINECONE_API_KEY)
 
+# Crée l'index si nécessaire
 if INDEX_NAME not in pc.list_indexes().names():
     pc.create_index(
         name=INDEX_NAME,
         dimension=1536,
         metric="cosine",
-        spec=ServerlessSpec(cloud="gcp", region=PINECONE_ENV)
+        spec=ServerlessSpec(cloud="gcp", region="europe-west4")
     )
 
 pinecone_index = pc.Index(INDEX_NAME)
-processed_namespaces = set()
+
+# === FONCTION DE PARSING DES BLOCS TAGGUÉS ===
+def extract_tagged_blocks(content):
+    pattern = (
+        r"## contexte: (.*?)\s*"
+        r"### sous_section: (.*?)\s*"
+        r"\*\*Q\s*:\*\*\s*(.*?)\s*"
+        r"\*\*R\s*:\*\*\s*(.*?)\s*"
+        r"\*\*public\s*:\*\*\s*(.*?)\s*"
+        r"\*\*statut\s*:\*\*\s*(.*?)\s*"
+        r"---"
+    )
+    matches = re.findall(pattern, content, re.DOTALL | re.IGNORECASE)
+    blocs = []
+    for match in matches:
+        bloc = {
+            "contexte": match[0].strip(),
+            "sous_section": match[1].strip(),
+            "question": match[2].strip(),
+            "reponse": match[3].strip(),
+            "public": match[4].strip(),
+            "statut": match[5].strip().lower()
+        }
+        blocs.append(bloc)
+    return blocs
+
+# === INDEXATION DANS PINECONE ===
 log_entries = {}
 
-# === PARSEUR Q/R ===
-def extract_question_answer_blocks(text):
-    pattern = r"###\s+(.*?)\n\*\*Réponse\s*:\*\*\s*(.+?)(?=\n###|\Z)"
-    matches = re.findall(pattern, text, re.DOTALL)
-    return [{"question": q.strip(), "reponse": r.strip()} for q, r in matches]
+for file_path in DOCS_ROOT.glob("*.md"):
+    section_name = file_path.stem.lower()
 
-# === INDEXATION ===
-for file_path in DOCS_ROOT.rglob("*.md"):
     if file_path.stat().st_size == 0:
         print(f"⏭️ Fichier vide ignoré : {file_path.name}")
-        namespace = file_path.relative_to(DOCS_ROOT).parts[0].lower().replace(" ", "-")
-        log_entries.setdefault(namespace, []).append((file_path.name, "Ignoré (vide)"))
+        log_entries.setdefault(section_name, []).append((file_path.name, "Ignoré (vide)"))
         continue
 
-    # Namespace dynamique basé sur le dossier
-    raw_namespace = file_path.relative_to(DOCS_ROOT).parts[0]
-    namespace = re.sub(r'[^a-zA-Z0-9_-]', '', raw_namespace.lower().replace(" ", "-"))
+    print(f"\n📂 Traitement du fichier : {file_path.name} (namespace = {section_name})")
 
-    print(f"\n📂 Traitement du namespace : '{namespace}' (depuis dossier : {raw_namespace})")
-
-    if namespace not in processed_namespaces:
-        try:
-            pinecone_index.delete(delete_all=True, namespace=namespace)
-            print(f"🧹 Namespace '{namespace}' supprimé avant réindexation")
-        except Exception as e:
-            print(f"⚠️ Erreur suppression namespace '{namespace}': {e}")
-        processed_namespaces.add(namespace)
+    try:
+        pinecone_index.delete(delete_all=True, namespace=section_name)
+        print(f"🧹 Namespace '{section_name}' nettoyé")
+    except Exception as e:
+        print(f"⚠️ Erreur suppression namespace '{section_name}': {e}")
 
     with open(file_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    blocks = extract_question_answer_blocks(content)
-    if not blocks:
-        print(f"⚠️ Aucun bloc Q/R trouvé dans : {file_path.name}")
-        log_entries.setdefault(namespace, []).append((file_path.name, "Aucun bloc Q/R trouvé"))
+    blocks = extract_tagged_blocks(content)
+    valid_blocks = [b for b in blocks if b["statut"] == "validé"]
+
+    if not valid_blocks:
+        print(f"⚠️ Aucun bloc `validé` trouvé dans : {file_path.name}")
+        log_entries.setdefault(section_name, []).append((file_path.name, "0 bloc validé"))
         continue
 
-    texts = [f"### {b['question']}\nRéponse : {b['reponse']}" for b in blocks]
-    metadatas = [{"question": b["question"], "reponse": b["reponse"], "source": str(file_path.relative_to(DOCS_ROOT))} for b in blocks]
+    texts = [f"Q: {b['question']}\nR: {b['reponse']}" for b in valid_blocks]
+    metadatas = [
+        {
+            "question": b["question"],
+            "reponse": b["reponse"],
+            "contexte": b["contexte"],
+            "sous_section": b["sous_section"],
+            "public": b["public"],
+            "section": section_name,
+            "source": str(file_path)
+        }
+        for b in valid_blocks
+    ]
 
     try:
         Pinecone.from_texts(
@@ -78,15 +105,15 @@ for file_path in DOCS_ROOT.rglob("*.md"):
             embedding=embeddings,
             metadatas=metadatas,
             index_name=INDEX_NAME,
-            namespace=namespace
+            namespace=section_name
         )
-        print(f"✅ {len(texts)} Q/R indexées dans '{namespace}' depuis {file_path.name}")
-        log_entries.setdefault(namespace, []).append((file_path.name, f"{len(texts)} Q/R"))
+        print(f"✅ {len(valid_blocks)} blocs indexés dans '{section_name}' depuis {file_path.name}")
+        log_entries.setdefault(section_name, []).append((file_path.name, f"{len(valid_blocks)} blocs indexés"))
     except Exception as e:
         print(f"❌ Erreur indexation {file_path.name} : {e}")
-        log_entries.setdefault(namespace, []).append((file_path.name, f"Erreur : {e}"))
+        log_entries.setdefault(section_name, []).append((file_path.name, f"Erreur : {e}"))
 
-# === ENREGISTREMENT DU RÉCAP ===
+# === LOG FINAL ===
 with open("index_log.txt", "w", encoding="utf-8") as log:
     for ns, files in log_entries.items():
         log.write(f"📂 Namespace : {ns}\n")
@@ -94,4 +121,4 @@ with open("index_log.txt", "w", encoding="utf-8") as log:
             log.write(f"  - {fname} → {status}\n")
         log.write("\n")
 
-print("\n✅ Indexation Q/R terminée. Voir index_log.txt pour le détail.")
+print("\n✅ Indexation terminée. Voir index_log.txt pour le détail.")

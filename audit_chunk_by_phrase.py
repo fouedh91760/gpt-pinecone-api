@@ -1,10 +1,12 @@
 from dotenv import load_dotenv
 import os
-from pinecone import Pinecone as PineconeClient
+import pinecone
+pinecone.init(api_key=os.environ["PINECONE_API_KEY"], environment="gcp-europe-west4")
+ as PineconeClient
 
 load_dotenv()
 pc = PineconeClient(api_key=os.getenv("PINECONE_API_KEY"))
-index = pc.Index("faq-vtc")
+index = pinecone.Index("faq-vtc")
 
 NAMESPACE = "vtc-taxi"  # ou "arrete-officiel", "examens-2025", etc.
 
